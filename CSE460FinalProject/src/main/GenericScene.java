@@ -18,6 +18,4 @@ public abstract class GenericScene {
 	public Scene getScene() {
 		return scene;
 	}
-
-	protected abstract void refreshTable();
 }

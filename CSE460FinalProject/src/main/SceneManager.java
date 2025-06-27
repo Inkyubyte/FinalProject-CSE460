@@ -24,13 +24,13 @@ public class SceneManager {
 			if (sceneToSwitch.equals("seller")) {
 				GenericScene scene = sceneMap.get(sceneToSwitch);
 				
-				scene.refreshTable();
+				// scene.refreshTable();
 			}
 			
 			if (sceneToSwitch.equals("buyer")) {
 				GenericScene scene = sceneMap.get(sceneToSwitch);
 				
-				scene.refreshTable();
+				// scene.refreshTable();
 			}
 			
 		}
