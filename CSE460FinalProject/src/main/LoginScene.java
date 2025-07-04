@@ -80,7 +80,7 @@ public class LoginScene extends GenericScene {
 
 
 	private String verifyInfo(String username, String password) {
-		User user = new User(1, "customer1", "customer", "password");
+		User user = Database.getUser(username);
 		
 		if (user == null) {
 			System.out.println("Incorrect Username");

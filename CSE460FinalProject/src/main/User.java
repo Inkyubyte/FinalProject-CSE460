@@ -1,10 +1,14 @@
 package main;
 
+import java.util.ArrayList;
+
 public class User {
+	
 	private int ID;
 	private String username;
 	private String role;
 	private String password;
+	private ArrayList<Integer> orders;
 	
 	public User(int iD, String username, String role, String password) {
 		ID = iD;

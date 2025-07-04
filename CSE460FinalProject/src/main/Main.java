@@ -9,13 +9,13 @@ public class Main extends Application {
 	
 	@Override
 	public void start(Stage primaryStage) throws Exception {
-		// Database.initializeDatabase();
+		Database.initializeDatabase();
 		SceneManager sceneManager = new SceneManager(primaryStage);
 		
 		sceneManager.addScene("login", new LoginScene(sceneManager));
-		//sceneManager.addScene("manager", new ManagerScene(sceneManager));
-		//sceneManager.addScene("operator", new OperatorScene(sceneManager));
-		//sceneManager.addScene("customer", new CustomerScene(sceneManager));
+		sceneManager.addScene("manager", new ManagerScene(sceneManager));
+		sceneManager.addScene("operator", new OperatorScene(sceneManager));
+		sceneManager.addScene("customer", new CustomerScene(sceneManager));
 		
 		sceneManager.switchScene("login");
 		
