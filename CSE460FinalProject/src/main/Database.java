@@ -153,6 +153,20 @@ public class Database {
 	    }
 	}
 	
+	public static boolean removeMenuItem(int id) {
+		String query = "DELETE FROM menu_items where id = ?";
+
+	    try (PreparedStatement stmt = connection.prepareStatement(query)) {
+	    	stmt.setInt(1, id);
+	        stmt.executeUpdate();
+	        return true;
+
+	    } catch (SQLException e) {
+	        System.out.println("Error removing menu item: " + e.getMessage());
+	        return false;
+	    }
+	}
+	
 	public static List<MenuItem> getMenuItemByCategory(String filterQuery) {
 		List<MenuItem> listToReturn = new ArrayList<>();
 

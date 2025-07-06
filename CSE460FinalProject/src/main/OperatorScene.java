@@ -100,7 +100,7 @@ public class OperatorScene extends GenericScene {
 		}
 
 	private void displayOrderDetails(Order order) {
-		orderNumberLabel.setText("Order #"+ order.getOrderID());
+		orderNumberLabel.setText("Order #"+ order.getOrderID() + " - " + order.getName());
 		itemListBox.getChildren().clear();
 		
 		for (MenuItem item : order.getOrderItems())

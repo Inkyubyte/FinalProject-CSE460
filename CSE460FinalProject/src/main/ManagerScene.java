@@ -4,9 +4,14 @@ import java.io.File;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.StandardCopyOption;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 
+import javafx.animation.Timeline;
+import javafx.animation.KeyFrame;
+import javafx.animation.Timeline;
+import javafx.util.Duration;
 import javafx.geometry.Insets;
 import javafx.geometry.Pos;
 import javafx.scene.Parent;
@@ -35,6 +40,7 @@ public class ManagerScene extends GenericScene {
     private Tab lunchTab;
     private Tab dinnerTab;
     private Tab beverageTab;
+    private List<MenuItem> allItems;
 	
 	public ManagerScene(SceneManager sceneManager) {
 		super(sceneManager, new BorderPane());
@@ -83,6 +89,21 @@ public class ManagerScene extends GenericScene {
         	sceneManager.switchScene("login");
         	Main.user = null;
         });
+		
+		allItems = getAllMenuItems();
+		
+		Timeline refreshTimeline = new Timeline(
+			    new KeyFrame(Duration.seconds(10), e -> {
+			    	List<MenuItem> cachedItems = getAllMenuItems();
+			    	
+			    	if (!allItems.equals(cachedItems)) {
+			    		allItems = cachedItems;
+			    		refreshView();
+			    	}
+			    })
+		);
+			refreshTimeline.setCycleCount(Timeline.INDEFINITE); // Repeat forever
+			refreshTimeline.play();
 	
 	}
 	
@@ -96,6 +117,9 @@ public class ManagerScene extends GenericScene {
 	    
 	    items = Database.getMenuItemByCategory(category);
 
+	    if (allItems == null) {
+	        allItems = new ArrayList<>();
+	    }    
 	    int col = 0, row = 0;
 	    
 	    for (MenuItem item : items) {
@@ -130,6 +154,10 @@ public class ManagerScene extends GenericScene {
 		VBox layout = new VBox(10);
 		layout.setPadding(new Insets(20));
 		
+		Label errorLabel = new Label("Error:");
+		errorLabel.setStyle("-fx-text-fill: red;");
+		errorLabel.setVisible(false);
+		
 		TextField nameField = new TextField();
 		nameField.setPromptText("Item Name");
 		
@@ -141,6 +169,7 @@ public class ManagerScene extends GenericScene {
 		
 	    ImageView imageView = new ImageView();
 	    imageView.setFitWidth(100);
+	    imageView.setFitHeight(100);
 	    imageView.setPreserveRatio(true);
 
 	    Button chooseImage = new Button("Select Image");
@@ -182,12 +211,25 @@ public class ManagerScene extends GenericScene {
 	            String name = nameField.getText();
 	            double price = Double.parseDouble(priceField.getText());
 	            String category = categoryBox.getValue();
-
-	            if (name.isEmpty() || category == null || imagePath[0] == null) {
-	                System.out.println("Missing fields!");
-	                return;
+	            
+	            if (name.isEmpty()) {
+	            	errorLabel.setText("Enter a name for the item.");
+	            	errorLabel.setVisible(true);
+	            	return;
 	            }
-
+	            
+	            if (category == null) {
+	            	errorLabel.setText("Enter a category for the items.");
+	            	errorLabel.setVisible(true);
+	            	return;
+	            }
+	            
+	            if (imagePath[0] == null) {
+	            	errorLabel.setText("Select an image for the item.");
+	            	errorLabel.setVisible(true);
+	            	return;
+	            }
+	            
 	            MenuItem newItem = new MenuItem(0, name, price, category, imagePath[0]);
 	            if (Database.addMenuItem(newItem)) {
 	                System.out.println("Item added.");
@@ -195,7 +237,8 @@ public class ManagerScene extends GenericScene {
 	                refreshView();
 	            }
 	        } catch (NumberFormatException ex) {
-	            System.out.println("Invalid price.");
+	            errorLabel.setText("Enter in a valid number.");
+	            errorLabel.setVisible(true);
 	        }
 	    });
 	    
@@ -204,7 +247,8 @@ public class ManagerScene extends GenericScene {
 	            new Label("Price:"), priceField,
 	            new Label("Category:"), categoryBox,
 	            chooseImage, imageView,
-	            saveButton
+	            saveButton,
+	            errorLabel
 	        );
 
 	    Scene scene = new Scene(layout, 300, 450);
@@ -239,8 +283,7 @@ public class ManagerScene extends GenericScene {
 	    box.setPrefWidth(150);
 	    
 	    deleteButton.setOnAction(e -> {
-	    	Pane parentPane = (Pane) box.getParent();
-	    	parentPane.getChildren().remove(box);
+	    	removeMenuItemPopup(item, box);
 	    });
 	    
 	    editButton.setOnAction(e -> {
@@ -251,121 +294,159 @@ public class ManagerScene extends GenericScene {
 	    return box;
 	}
 	
-	 private void showItemEditor(MenuItem item) {
-	 
+	private void removeMenuItemPopup(MenuItem item, VBox box) {
 		 Stage popup = new Stage();
-			popup.setTitle("Edit Menu Item");
+		 popup.setTitle("Remove menu item");
 			
-			VBox layout = new VBox(10);
-			layout.setPadding(new Insets(20));
+		 VBox layout = new VBox(10);
+		 layout.setPadding(new Insets(20));
+		 layout.setAlignment(Pos.CENTER);
 			
-			TextField nameField = new TextField();
-			nameField.setPromptText("Item Name");
-			nameField.setText(item.getItemName());
+		 Label errorLabel = new Label("Error:");
+		 errorLabel.setStyle("-fx-text-fill: red;");
+		 errorLabel.setVisible(false);
+		 
+		 Label questionLabel = new Label("Are you sure about deleting " + item.getItemName() + "?");
+				    
+		 Button confirmButton = new Button("Remove item");
+		 confirmButton.setOnAction(e -> {
+			 try {
+				 if (Database.removeMenuItem(item.getItemID())) {
+					 Pane parentPane = (Pane) box.getParent();
+					 parentPane.getChildren().remove(box);
+					 refreshView();
+					 popup.close();
+				 }
+				 else {
+					 errorLabel.setText("Error when removing item.");
+					 errorLabel.setVisible(true);
+				 }
+					
+			} catch (NumberFormatException ex) {
+				errorLabel.setText("Error when removing item.");
+				errorLabel.setVisible(true);
+			}
+		});
+		 
+		 
+		 
+		 layout.getChildren().addAll(questionLabel, confirmButton, errorLabel);
+		 
+		
+		Scene scene = new Scene(layout, 300, 150);
+		popup.setScene(scene);
+		popup.initModality(Modality.APPLICATION_MODAL);
+		popup.showAndWait();
+	}
+
+	private void showItemEditor(MenuItem item) {
+		 Stage popup = new Stage();
+		 popup.setTitle("Edit Menu Item");
 			
-			TextField priceField = new TextField();
-			priceField.setPromptText("Price");
-			priceField.setText(Double.toString(item.getPrice()));
+		 VBox layout = new VBox(10);
+		 layout.setPadding(new Insets(20));
 			
-			ComboBox<String> categoryBox = new ComboBox<>();
-		    categoryBox.getItems().addAll("Breakfast", "Lunch", "Dinner", "Beverage");
-		    categoryBox.getSelectionModel().select(item.getCategory());
+		 TextField nameField = new TextField();
+		 nameField.setPromptText("Item Name");
+		 nameField.setText(item.getItemName());
 			
-		    ImageView imageView = new ImageView();
-		    File file = new File(item.getImagePath());
-		    if (file.exists()) {
-		        imageView.setImage(new Image(file.toURI().toString()));
-		    }
-		    imageView.setFitWidth(100);
-		    imageView.setFitHeight(100);
-		    imageView.setPreserveRatio(true);
+		 TextField priceField = new TextField();
+		 priceField.setPromptText("Price");
+		 priceField.setText(Double.toString(item.getPrice()));
+			
+		 ComboBox<String> categoryBox = new ComboBox<>();
+		 categoryBox.getItems().addAll("Breakfast", "Lunch", "Dinner", "Beverage");
+		 categoryBox.getSelectionModel().select(item.getCategory());
+			
+		 ImageView imageView = new ImageView();
+		 File file = new File(item.getImagePath());
+		 if (file.exists()) {
+			 imageView.setImage(new Image(file.toURI().toString()));
+		 }
+		 imageView.setFitWidth(100);
+		 imageView.setFitHeight(100);
+		 imageView.setPreserveRatio(true);
 
 
-		    Button chooseImage = new Button("Select Image");
-		    String[] imagePath = {item.getImagePath()};
+		 Button chooseImage = new Button("Select Image");
+		 String[] imagePath = {item.getImagePath()};
 		    
-		    chooseImage.setOnAction(e -> {
-		    	// Get file chooser
-		    	FileChooser fileChooser = new FileChooser();
-		    	fileChooser.setTitle("Select Product Image");
-		    	fileChooser.getExtensionFilters().addAll( new FileChooser.ExtensionFilter("Image Files", "*.png", "*.jpg", "*.jpeg"));
+		 chooseImage.setOnAction(e -> {
+			 // Get file chooser
+			 FileChooser fileChooser = new FileChooser();
+			 fileChooser.setTitle("Select Product Image");
+			 fileChooser.getExtensionFilters().addAll( new FileChooser.ExtensionFilter("Image Files", "*.png", "*.jpg", "*.jpeg"));
 		    	
-		    	File sourceFile = fileChooser.showOpenDialog(popup);
+			 File sourceFile = fileChooser.showOpenDialog(popup);
 		    	
-		    	if (sourceFile != null) {
-		    		try {
-		    			File imageDir = new File("images");
-		    			if (!imageDir.exists())
-		    				imageDir.mkdirs();
+			 if (sourceFile != null) {
+				 try {
+					 File imageDir = new File("images");
+					 if (!imageDir.exists())
+						 imageDir.mkdirs();
 		    			
-		    			File destFile = new File(imageDir, sourceFile.getName());
+					 File destFile = new File(imageDir, sourceFile.getName());
 		    			
-		    			Files.copy(sourceFile.toPath(), destFile.toPath(), StandardCopyOption.REPLACE_EXISTING);
+					 Files.copy(sourceFile.toPath(), destFile.toPath(), StandardCopyOption.REPLACE_EXISTING);
 		    			
-		    			imagePath[0] = "images/" + sourceFile.getName();
+					 imagePath[0] = "images/" + sourceFile.getName();
 		    			
-		    			imageView.setImage(new Image(destFile.toURI().toString()));
+					 imageView.setImage(new Image(destFile.toURI().toString()));
 		    			
-		    		} catch (IOException ex) {
-		    			ex.printStackTrace();	    		
-		    		}
+				 } catch (IOException ex) {
+					 ex.printStackTrace();	    		
+				 }
 		    	}
-		    	
-		    	});
+		 });
 		    
-		    Button saveButton = new Button("Save");
-		    saveButton.setOnAction(e -> {
-		        try {
-		        	// Get values that manager entered
-		            String name = nameField.getText();
-		            double price = Double.parseDouble(priceField.getText());
-		            String category = categoryBox.getValue();
+		 Button saveButton = new Button("Save");
+		 saveButton.setOnAction(e -> {
+			 try {
+		    // Get values that manager entered
+				 String name = nameField.getText();
+				 double price = Double.parseDouble(priceField.getText());
+				 String category = categoryBox.getValue();
 
-		            if (name.isEmpty() || category == null || imagePath[0] == null) {
-		                System.out.println("Missing fields!");
-		                return;
-		            }
+				 if (name.isEmpty() || category == null || imagePath[0] == null) {
+					 System.out.println("Missing fields!");
+					 return;
+				 }
 
-		            MenuItem newItem = new MenuItem(item.getItemID(), name, price, category, imagePath[0]);
-		            if (Database.editMenuItem(newItem)) {
-		                System.out.println("Item edited.");
-		                popup.close();
-		                refreshView();
-		            }
-		        } catch (NumberFormatException ex) {
-		            System.out.println("Invalid price.");
-		        }
-		    });
+				 MenuItem newItem = new MenuItem(item.getItemID(), name, price, category, imagePath[0]);
+				 if (Database.editMenuItem(newItem)) {
+					 System.out.println("Item edited.");
+					 popup.close();
+					 refreshView();
+				 }
+			} catch (NumberFormatException ex) {
+				System.out.println("Invalid price.");
+			}
+		});
 		    
-		    layout.getChildren().addAll(
-		            new Label("Name:"), nameField,
-		            new Label("Price:"), priceField,
-		            new Label("Category:"), categoryBox,
-		            chooseImage, imageView,
-		            saveButton
-		        );
+		layout.getChildren().addAll(
+				new Label("Name:"), nameField,
+		        new Label("Price:"), priceField,
+		        new Label("Category:"), categoryBox,
+		        chooseImage, imageView,
+		        saveButton
+		);
 
-		    Scene scene = new Scene(layout, 300, 450);
-		    popup.setScene(scene);
-		    popup.initModality(Modality.APPLICATION_MODAL);
-		    popup.showAndWait();
+		Scene scene = new Scene(layout, 300, 450);
+		popup.setScene(scene);
+		popup.initModality(Modality.APPLICATION_MODAL);
+		popup.showAndWait();
 		 
 	 }
 	 
 
-	 @Override
-	 protected void refreshView() {
+	@Override
+	protected void refreshView() {
 		 Tab selected = tabPane.getSelectionModel().getSelectedItem();
 		 
-		 tabPane.getTabs().clear();
-		 
-		 breakfastTab = new Tab("Breakfast", createCategoryPane("Breakfast"));
-	     lunchTab = new Tab("Lunch", createCategoryPane("Lunch"));
-	     dinnerTab = new Tab("Dinner", createCategoryPane("Dinner"));
-	     beverageTab = new Tab("Beverages", createCategoryPane("Beverage"));
-	     
-	     tabPane.getTabs().addAll(breakfastTab, lunchTab, dinnerTab, beverageTab);
-	     
+		 breakfastTab.setContent(createCategoryPane("Breakfast"));
+	     lunchTab.setContent(createCategoryPane("Lunch"));
+	     dinnerTab.setContent(createCategoryPane("Dinner"));
+	     beverageTab.setContent(createCategoryPane("Beverage"));
 	     
 	     for (Tab t : tabPane.getTabs()) {
 	    	 if (t.getText().equals(selected.getText())) {
@@ -375,4 +456,13 @@ public class ManagerScene extends GenericScene {
 	     }
 		
 	 }
+	
+	private List<MenuItem> getAllMenuItems() {
+	    List<MenuItem> all = new ArrayList<>();
+	    all.addAll(Database.getMenuItemByCategory("Breakfast"));
+	    all.addAll(Database.getMenuItemByCategory("Lunch"));
+	    all.addAll(Database.getMenuItemByCategory("Dinner"));
+	    all.addAll(Database.getMenuItemByCategory("Beverage"));
+	    return all;
+	}
 }

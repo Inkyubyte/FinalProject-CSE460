@@ -1,20 +1,29 @@
 package main;
 
 import java.io.File;
+import java.io.IOException;
+import java.nio.file.Files;
+import java.nio.file.StandardCopyOption;
 import java.util.ArrayList;
 import java.util.List;
 
 import javafx.geometry.Insets;
 import javafx.geometry.Pos;
 import javafx.scene.Parent;
+import javafx.scene.Scene;
 import javafx.scene.control.Button;
+import javafx.scene.control.ComboBox;
 import javafx.scene.control.Label;
+import javafx.scene.control.TextField;
 import javafx.scene.image.Image;
 import javafx.scene.image.ImageView;
 import javafx.scene.layout.BorderPane;
 import javafx.scene.layout.GridPane;
 import javafx.scene.layout.HBox;
 import javafx.scene.layout.VBox;
+import javafx.stage.FileChooser;
+import javafx.stage.Modality;
+import javafx.stage.Stage;
 
 public class CustomerScene extends GenericScene {
 	
@@ -177,14 +186,7 @@ public class CustomerScene extends GenericScene {
 	    
 	    checkoutButton.setOnAction(e -> {
 			if (!cartItemIds.isEmpty()) {
-				if (Database.addOrder(Main.user.getID(), Main.user.getUsername(), cartItemIds)) {
-					System.out.println("Order added successfully");
-				}
-				else {
-					System.out.println("Failed");
-				}
-				checkoutBox.getChildren().removeIf(node -> node instanceof HBox);
-				cartItemIds.clear();
+				showConfirmationWindow();
 			}
 			else {
 				System.out.println("Cart empty");
@@ -271,6 +273,64 @@ public class CustomerScene extends GenericScene {
 		return itemBox;
 	}
 
+	 private void showConfirmationWindow() {
+		 Stage popup = new Stage();
+		 popup.setTitle("Enter name and confirm order");
+			
+		 VBox layout = new VBox(10);
+		 layout.setPadding(new Insets(20));
+			
+		 Label errorLabel = new Label("Error:");
+		 errorLabel.setStyle("-fx-text-fill: red;");
+		 errorLabel.setVisible(false);
+		 
+		 TextField nameField = new TextField();
+		 nameField.setPromptText("Enter name for order");
+				    
+		 Button saveButton = new Button("Confirm Order");
+		 saveButton.setOnAction(e -> {
+			 try {
+				 
+				 if (nameField.getText().isEmpty()) {
+					 nameField.setPromptText("");
+					 errorLabel.setText("Error: Please enter a name.");
+					 errorLabel.setVisible(true);
+					 return;
+				 }
+					 
+				 if (Database.addOrder(Main.user.getID(), nameField.getText(), cartItemIds)) {
+						System.out.println("Order added successfully");
+						checkoutBox.getChildren().removeIf(node -> node instanceof HBox);
+						cartItemIds.clear();
+						popup.close();
+					}
+					else {
+						errorLabel.setText("Error when entering name. Please re-enter");
+						errorLabel.setVisible(true);
+					}
+					
+			} catch (NumberFormatException ex) {
+				errorLabel.setText("Error when entering name. Please re-enter");
+				errorLabel.setVisible(true);
+			}
+		});
+		 
+		 
+		 
+		 layout.getChildren().addAll(
+		            new Label("Name:"), nameField,
+		            saveButton,
+		            errorLabel
+		 );
+		 
+		
+		Scene scene = new Scene(layout, 300, 200);
+		popup.setScene(scene);
+		popup.initModality(Modality.APPLICATION_MODAL);
+		popup.showAndWait();
+		 
+	 }
+	
 	@Override
 	protected void refreshView() {
 	}
