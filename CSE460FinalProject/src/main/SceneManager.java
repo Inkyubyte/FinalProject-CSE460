@@ -18,20 +18,12 @@ public class SceneManager {
 	
 	public void switchScene(String sceneToSwitch) {
 		if (sceneMap.containsKey(sceneToSwitch)) {
-			mainStage.setScene(sceneMap.get(sceneToSwitch).getScene());
+			GenericScene scene = sceneMap.get(sceneToSwitch);
+			scene.refreshView();
+			
 			mainStage.setScene(sceneMap.get(sceneToSwitch).getScene());
 			System.out.println("Scene is set to: " + sceneToSwitch);
-			if (sceneToSwitch.equals("seller")) {
-				GenericScene scene = sceneMap.get(sceneToSwitch);
-				
-				// scene.refreshTable();
-			}
 			
-			if (sceneToSwitch.equals("buyer")) {
-				GenericScene scene = sceneMap.get(sceneToSwitch);
-				
-				// scene.refreshTable();
-			}
 			
 		}
 		else {

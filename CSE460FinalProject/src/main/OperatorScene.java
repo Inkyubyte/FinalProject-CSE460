@@ -1,5 +1,7 @@
 package main;
 
+import java.util.List;
+
 import javafx.geometry.Insets;
 import javafx.geometry.Pos;
 import javafx.scene.Parent;
@@ -17,6 +19,8 @@ public class OperatorScene extends GenericScene {
 	private VBox itemListBox;
 	private Label orderNumberLabel;
 	private ComboBox<String> statusDropDown;
+	private List<Order> ordersToDisplay;
+	private GridPane orderViewPanel;
 	
 	public OperatorScene(SceneManager sceneManager) {
 		super(sceneManager, new BorderPane());
@@ -38,20 +42,24 @@ public class OperatorScene extends GenericScene {
 		borderRoot.setTop(topBanner);
 		
 		
-		GridPane orderViewPanel = new GridPane();
+		orderViewPanel = new GridPane();
 		orderViewPanel.setHgap(20);
 		orderViewPanel.setVgap(20);
 		orderViewPanel.setAlignment(Pos.CENTER_LEFT);
 		orderViewPanel.setPadding(new Insets(0, 0, 0, 150)); // Offset to the left
 		
+		ordersToDisplay = Database.getOrdersByStatus();
 		
-		// Replace with a for each loop targeting all orders in a list of order got from the Database later.
-		for (int i = 0; i < 10; i++) {
-			VBox orderCard = createOrderCard(i + 1);
+		
+		int i = 0;
+		
+		for (Order order : ordersToDisplay) {
+			VBox orderCard = createOrderCard(order);
 			
 			int col = i % 3;
 			int row = i / 3;
 			orderViewPanel.add(orderCard, col, row);
+			i++;
 		}
 		
 		borderRoot.setCenter(orderViewPanel);
@@ -76,7 +84,7 @@ public class OperatorScene extends GenericScene {
         });
 	}
 
-	private VBox createOrderCard(int orderID) {
+	private VBox createOrderCard(Order order) {
 			VBox orderCard = new VBox();
 			orderCard.setPrefSize(120, 120);
 			orderCard.setStyle("-fx-border-color: black");
@@ -85,16 +93,38 @@ public class OperatorScene extends GenericScene {
 			// Label orderID = new Label(order.getOrderID());
 			// Label orderItems = order.getItems().getName();
 			
-			orderCard.setOnMouseClicked(e -> displayOrderDetails(orderID));
+			orderCard.setOnMouseClicked(e -> displayOrderDetails(order));
 			
-			orderCard.getChildren().addAll(new Label("Order " + orderID), new Label("In Progress"));
+			orderCard.getChildren().addAll(new Label("Order " + order.getOrderID()), new Label("Not Started"));
 			return orderCard;
 		}
 
-	private void displayOrderDetails(int orderID) {
-		orderNumberLabel.setText("Order #"+ orderID);
+	private void displayOrderDetails(Order order) {
+		orderNumberLabel.setText("Order #"+ order.getOrderID());
 		itemListBox.getChildren().clear();
-		itemListBox.getChildren().addAll(new Label("- Pancakes"), new Label("- Coffee"), new Label("Eggs benedict"));
-		statusDropDown.setValue("Not Started");
+		
+		for (MenuItem item : order.getOrderItems())
+			itemListBox.getChildren().addAll(new Label("- " + item.getItemName()));		
+		statusDropDown.setValue(order.getStatus());
+	}
+	
+	@Override
+	protected void refreshView() {
+		ordersToDisplay = Database.getOrdersByStatus();
+		
+		System.out.println("Orders to display: " + ordersToDisplay);
+		
+		
+		int i = 0;
+		
+		for (Order order : ordersToDisplay) {
+			VBox orderCard = createOrderCard(order);
+			
+			int col = i % 3;
+			int row = i / 3;
+			orderViewPanel.add(orderCard, col, row);
+			i++;
+		}
+		
 	}
 }

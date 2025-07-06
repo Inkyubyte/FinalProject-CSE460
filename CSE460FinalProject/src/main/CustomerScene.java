@@ -15,8 +15,6 @@ import javafx.scene.layout.BorderPane;
 import javafx.scene.layout.GridPane;
 import javafx.scene.layout.HBox;
 import javafx.scene.layout.VBox;
-import javafx.scene.paint.Color;
-import javafx.scene.shape.Rectangle;
 
 public class CustomerScene extends GenericScene {
 	
@@ -81,16 +79,7 @@ public class CustomerScene extends GenericScene {
 		    checkoutButton
 		);
 		checkoutBox.setVisible(false);
-		
-		
-		checkoutButton.setOnAction(e -> {
-			if (!cartItemIds.isEmpty()) {
-				String customerName = Main.user.getUsername();
-				Database.addOrder(customerName, cartItemIds);
-				checkoutBox.getChildren().removeIf(node -> node instanceof HBox);
-				cartItemIds.clear();
-			}
-		});
+
 		
 		logoutButton.setOnAction(e -> {
         	sceneManager.switchScene("login");
@@ -141,6 +130,22 @@ public class CustomerScene extends GenericScene {
 			 loadItemsByCategory("Beverage");
 		 });
 		 
+		 checkoutButton.setOnAction(e -> {
+				if (!cartItemIds.isEmpty()) {
+					if (Database.addOrder(Main.user.getID(), Main.user.getUsername(), cartItemIds)) {
+						System.out.println("Order added successfully");
+					}
+					else {
+						System.out.println("Failed");
+					}
+					checkoutBox.getChildren().removeIf(node -> node instanceof HBox);
+					cartItemIds.clear();
+				}
+				else {
+					System.out.println("Cart empty");
+				}
+			});
+		 
 		 VBox centerBox = new VBox(3);
 		 centerBox.getChildren().addAll(itemGrid, categorySelectionBox);
 		 VBox centerWrapper = new VBox(centerBox);
@@ -160,13 +165,31 @@ public class CustomerScene extends GenericScene {
 	    itemGrid.setVisible(true);
 	    itemGrid.setManaged(true);
 	    
+	    Button checkoutButton = new Button("Checkout and Pay");
+	    
 	    checkoutBox.getChildren().clear();
 	    checkoutBox.getChildren().addAll(
 			    new Label("Checkout"),
 			    new Label("Tax:\t\t0.00"),
 			    new Label("Total:\t\t0.00"),
-			    new Button("Checkout and Pay")
+			    checkoutButton
 			);
+	    
+	    checkoutButton.setOnAction(e -> {
+			if (!cartItemIds.isEmpty()) {
+				if (Database.addOrder(Main.user.getID(), Main.user.getUsername(), cartItemIds)) {
+					System.out.println("Order added successfully");
+				}
+				else {
+					System.out.println("Failed");
+				}
+				checkoutBox.getChildren().removeIf(node -> node instanceof HBox);
+				cartItemIds.clear();
+			}
+			else {
+				System.out.println("Cart empty");
+			}
+		});
 	    
 	    checkoutBox.setVisible(true);
 	    checkoutBox.setManaged(true);
@@ -246,5 +269,9 @@ public class CustomerScene extends GenericScene {
 
         
 		return itemBox;
+	}
+
+	@Override
+	protected void refreshView() {
 	}
 }

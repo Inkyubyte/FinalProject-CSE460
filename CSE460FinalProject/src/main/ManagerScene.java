@@ -30,6 +30,12 @@ import javafx.stage.Stage;
 
 public class ManagerScene extends GenericScene {
 
+	private TabPane tabPane;
+	private Tab breakfastTab;
+    private Tab lunchTab;
+    private Tab dinnerTab;
+    private Tab beverageTab;
+	
 	public ManagerScene(SceneManager sceneManager) {
 		super(sceneManager, new BorderPane());
 	}
@@ -59,12 +65,14 @@ public class ManagerScene extends GenericScene {
 		borderRoot.setLeft(sidebar);
 		
 		
-		TabPane tabPane = new TabPane();
+		tabPane = new TabPane();
         tabPane.setTabClosingPolicy(TabPane.TabClosingPolicy.UNAVAILABLE);
 
-        Tab breakfastTab = new Tab("Breakfast", createCategoryPane("Breakfast"));
-        Tab lunchTab = new Tab("Lunch", createCategoryPane("Lunch"));
-        Tab dinnerTab = new Tab("Dinner", createCategoryPane("Dinner"));
+        
+        breakfastTab = new Tab("Breakfast", createCategoryPane("Breakfast"));
+        lunchTab = new Tab("Lunch", createCategoryPane("Lunch"));
+        dinnerTab = new Tab("Dinner", createCategoryPane("Dinner"));
+        beverageTab = new Tab("Beverages", createCategoryPane("Beverage"));
 
         tabPane.getTabs().addAll(breakfastTab, lunchTab, dinnerTab);
         
@@ -84,22 +92,15 @@ public class ManagerScene extends GenericScene {
 	    itemGrid.setVgap(20);
 	    itemGrid.setPadding(new Insets(10));
 	    
-	    List<String> items = null;
+	    List<MenuItem> items = null;
 	    
-	    if (category == "Breakfast") 
-	    	items = Arrays.asList("Pancakes", "Item 2", "Item 3", "Pancakes", "Item 2", "Item 3", "Pancakes", "Item 2", "Item 3", "Pancakes", "Item 2", "Item 3");
-	    else if (category == "Dinner")
-	    	items = Arrays.asList("Steak", "Item 2", "Item 3");
-	    else if (category == "Lunch")
-	    	items = Arrays.asList("Sandwich", "Item 2", "Item 3");
-	    else
-	    	items = Arrays.asList("Item 1", "Item 2", "Item 3");
+	    items = Database.getMenuItemByCategory(category);
 
 	    int col = 0, row = 0;
 	    
-	    for (String item : items) {
+	    for (MenuItem item : items) {
 	    	// VBox itemCard = createItemCard(item.getName(), item.getPrice());
-	        VBox itemCard = createItemCard(item, 9.99);
+	        VBox itemCard = createItemCard(item);
 	        itemGrid.add(itemCard, col++, row);
 	        if (col == 6) {
 	            col = 0;
@@ -112,7 +113,12 @@ public class ManagerScene extends GenericScene {
 	    	showAddItemPopup();
 	    });
 
-	    VBox pane = new VBox(20, itemGrid, addNew);
+	    if (col == 6)
+	    	itemGrid.add(addNew, 0, row++);
+	    else
+	    	itemGrid.add(addNew, col, row);
+	    
+	    VBox pane = new VBox(20, itemGrid);
 	    pane.setPadding(new Insets(10));
 	    return pane;
 	}
@@ -186,7 +192,7 @@ public class ManagerScene extends GenericScene {
 	            if (Database.addMenuItem(newItem)) {
 	                System.out.println("Item added.");
 	                popup.close();
-	                // Call your UI refresh method here
+	                refreshView();
 	            }
 	        } catch (NumberFormatException ex) {
 	            System.out.println("Invalid price.");
@@ -208,16 +214,25 @@ public class ManagerScene extends GenericScene {
 	    
 	}
 
-	private VBox createItemCard(String name, double price) {
-	    Label nameLabel = new Label(name);
-	    Label priceLabel = new Label(String.format("$%.2f", price));
+	private VBox createItemCard(MenuItem item) {
+	    Label nameLabel = new Label(item.getItemName());
+	    Label priceLabel = new Label(String.format("$%.2f", item.getPrice()));
 	    Button editButton = new Button("Edit");
 	    Button deleteButton = new Button("Delete");
 
 	    HBox buttonRow = new HBox(10, editButton, deleteButton);
 	    buttonRow.setAlignment(Pos.CENTER);
+	    
+	    ImageView imageView = new ImageView();
+	    File file = new File(item.getImagePath());
+	    if (file.exists()) {
+	        imageView.setImage(new Image(file.toURI().toString()));
+	    }
+	    imageView.setFitWidth(100);
+	    imageView.setFitHeight(100);
+	    imageView.setPreserveRatio(true);
 
-	    VBox box = new VBox(10, nameLabel, priceLabel, buttonRow);
+	    VBox box = new VBox(10, nameLabel, imageView, priceLabel, buttonRow);
 	    box.setPadding(new Insets(10));
 	    box.setAlignment(Pos.CENTER);
 	    box.setStyle("-fx-border-color: black; -fx-border-radius: 5px;");
@@ -227,12 +242,137 @@ public class ManagerScene extends GenericScene {
 	    	Pane parentPane = (Pane) box.getParent();
 	    	parentPane.getChildren().remove(box);
 	    });
+	    
+	    editButton.setOnAction(e -> {
+	    	showItemEditor(item);
+	    	refreshView();
+	    });
 
 	    return box;
 	}
 	
-	 private void showItemEditor(String category, String itemToEdit) {
-	        // Open a dialog or side panel for editing or adding a new item
-	        System.out.println("Open editor for: " + (itemToEdit == null ? "New Item" : itemToEdit));
-	    }
+	 private void showItemEditor(MenuItem item) {
+	 
+		 Stage popup = new Stage();
+			popup.setTitle("Edit Menu Item");
+			
+			VBox layout = new VBox(10);
+			layout.setPadding(new Insets(20));
+			
+			TextField nameField = new TextField();
+			nameField.setPromptText("Item Name");
+			nameField.setText(item.getItemName());
+			
+			TextField priceField = new TextField();
+			priceField.setPromptText("Price");
+			priceField.setText(Double.toString(item.getPrice()));
+			
+			ComboBox<String> categoryBox = new ComboBox<>();
+		    categoryBox.getItems().addAll("Breakfast", "Lunch", "Dinner", "Beverage");
+		    categoryBox.getSelectionModel().select(item.getCategory());
+			
+		    ImageView imageView = new ImageView();
+		    File file = new File(item.getImagePath());
+		    if (file.exists()) {
+		        imageView.setImage(new Image(file.toURI().toString()));
+		    }
+		    imageView.setFitWidth(100);
+		    imageView.setFitHeight(100);
+		    imageView.setPreserveRatio(true);
+
+
+		    Button chooseImage = new Button("Select Image");
+		    String[] imagePath = {item.getImagePath()};
+		    
+		    chooseImage.setOnAction(e -> {
+		    	// Get file chooser
+		    	FileChooser fileChooser = new FileChooser();
+		    	fileChooser.setTitle("Select Product Image");
+		    	fileChooser.getExtensionFilters().addAll( new FileChooser.ExtensionFilter("Image Files", "*.png", "*.jpg", "*.jpeg"));
+		    	
+		    	File sourceFile = fileChooser.showOpenDialog(popup);
+		    	
+		    	if (sourceFile != null) {
+		    		try {
+		    			File imageDir = new File("images");
+		    			if (!imageDir.exists())
+		    				imageDir.mkdirs();
+		    			
+		    			File destFile = new File(imageDir, sourceFile.getName());
+		    			
+		    			Files.copy(sourceFile.toPath(), destFile.toPath(), StandardCopyOption.REPLACE_EXISTING);
+		    			
+		    			imagePath[0] = "images/" + sourceFile.getName();
+		    			
+		    			imageView.setImage(new Image(destFile.toURI().toString()));
+		    			
+		    		} catch (IOException ex) {
+		    			ex.printStackTrace();	    		
+		    		}
+		    	}
+		    	
+		    	});
+		    
+		    Button saveButton = new Button("Save");
+		    saveButton.setOnAction(e -> {
+		        try {
+		        	// Get values that manager entered
+		            String name = nameField.getText();
+		            double price = Double.parseDouble(priceField.getText());
+		            String category = categoryBox.getValue();
+
+		            if (name.isEmpty() || category == null || imagePath[0] == null) {
+		                System.out.println("Missing fields!");
+		                return;
+		            }
+
+		            MenuItem newItem = new MenuItem(item.getItemID(), name, price, category, imagePath[0]);
+		            if (Database.editMenuItem(newItem)) {
+		                System.out.println("Item edited.");
+		                popup.close();
+		                refreshView();
+		            }
+		        } catch (NumberFormatException ex) {
+		            System.out.println("Invalid price.");
+		        }
+		    });
+		    
+		    layout.getChildren().addAll(
+		            new Label("Name:"), nameField,
+		            new Label("Price:"), priceField,
+		            new Label("Category:"), categoryBox,
+		            chooseImage, imageView,
+		            saveButton
+		        );
+
+		    Scene scene = new Scene(layout, 300, 450);
+		    popup.setScene(scene);
+		    popup.initModality(Modality.APPLICATION_MODAL);
+		    popup.showAndWait();
+		 
+	 }
+	 
+
+	 @Override
+	 protected void refreshView() {
+		 Tab selected = tabPane.getSelectionModel().getSelectedItem();
+		 
+		 tabPane.getTabs().clear();
+		 
+		 breakfastTab = new Tab("Breakfast", createCategoryPane("Breakfast"));
+	     lunchTab = new Tab("Lunch", createCategoryPane("Lunch"));
+	     dinnerTab = new Tab("Dinner", createCategoryPane("Dinner"));
+	     beverageTab = new Tab("Beverages", createCategoryPane("Beverage"));
+	     
+	     tabPane.getTabs().addAll(breakfastTab, lunchTab, dinnerTab, beverageTab);
+	     
+	     
+	     for (Tab t : tabPane.getTabs()) {
+	    	 if (t.getText().equals(selected.getText())) {
+	    		 tabPane.getSelectionModel().select(t);
+	             break;
+	            }
+	     }
+		
+	 }
 }

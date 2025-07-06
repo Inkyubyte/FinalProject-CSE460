@@ -90,9 +90,10 @@ public class Database {
 	            // ORDERS
 	            query = "CREATE TABLE IF NOT EXISTS orders (" +
 	                    "id INTEGER PRIMARY KEY," +
+	            		"customer_id INTEGER NOT NULL," +
 	                    "customer_name TEXT NOT NULL," +
 	                    "item_ids TEXT NOT NULL," +
-	                    "status TEXT NOT NULL DEFAULT 'Not started')";
+	                    "status TEXT NOT NULL DEFAULT 'Not Started')";
 	            statement.executeUpdate(query);
 
 	        } catch (SQLException e) {
@@ -177,21 +178,112 @@ public class Database {
 		
 	}
 	
-	public static boolean addOrder(String customerName, List<Integer> itemIds) {
+	public static List<Order> getOrdersByStatus() {
+		List<Order> listToReturn = new ArrayList<>();
+
+	    try {
+	    	String query = "SELECT * FROM orders WHERE status IN ('Not Started', 'In Progress', 'Ready')";
+	        PreparedStatement stmt = connection.prepareStatement(query);
+	        // stmt.setString(1, filterQuery);
+	        ResultSet result = stmt.executeQuery();
+
+	        while (result.next()) {
+	        	Order order = new Order(result.getInt("id"), result.getInt("customer_id"), getOrderItems(result.getString("item_ids")), result.getString("customer_name"), result.getString("status"));
+	        	listToReturn.add(order);
+	        }
+	        
+	        result.close();
+	        stmt.close();
+
+	    } catch (SQLException e) {
+	        System.out.println(e.getMessage());
+	    }
+	    
+	    System.out.println("Orders fetched: " + listToReturn.size());
+	    for (Order o : listToReturn) {
+	        System.out.println("Order ID: " + o.getOrderID() + ", Customer: " + o.getName());
+	    }
+
+	    return listToReturn;
+		
+	}
+	
+	
+	private static List<MenuItem> getOrderItems(String menuItemString) {
+		List<MenuItem> listToReturn = new ArrayList<>();
+		 if (menuItemString == null || menuItemString.trim().isEmpty()) {
+			 return listToReturn;
+		 }
+		 
+		String[] menuItemIds = menuItemString.split(",");
+		for (String menuID : menuItemIds) {
+			try {
+				int id = Integer.parseInt(menuID.trim());
+				MenuItem item = getMenuItemByID(id);
+				
+				if (item != null)
+					listToReturn.add(item);
+			} catch (NumberFormatException e) {
+	            System.out.println("Invalid item ID: " + menuID);
+	        }
+		}
+		
+		return listToReturn;
+	}
+
+	private static MenuItem getMenuItemByID(int id) {
+		String query = "SELECT * FROM menu_items WHERE id = ?";
+		
+		try (PreparedStatement stmt = connection.prepareStatement(query)) {
+			stmt.setInt(1, id);
+			ResultSet result = stmt.executeQuery();
+			
+			if (result.next()) {
+				return new MenuItem(result.getInt("id"), result.getString("name"), result.getDouble("price"), result.getString("category"), result.getString("imagePath"));
+			}
+			
+		} catch (SQLException e) {
+			System.out.println("Error fetching item by ID: " + e.getMessage());
+		}
+		
+		return null;
+	}
+
+	public static boolean addOrder(int customerID, String customerName, List<Integer> itemIds) {
 		if (itemIds == null || itemIds.isEmpty())
 			return false;
 		String itemIdsString = itemIds.stream().map(String::valueOf).collect(Collectors.joining(","));
 		
-		String query = "INSERT INTO orders (customer_name, item_ids) VALUES (?, ?)";
+		String query = "INSERT INTO orders (customer_id, customer_name, item_ids) VALUES (?, ?, ?)";
 		
 		try (PreparedStatement stmt = connection.prepareStatement(query)) {
-            stmt.setString(1, customerName);
-            stmt.setString(2, itemIdsString);
+			stmt.setInt(1, customerID);
+            stmt.setString(2, customerName);
+            stmt.setString(3, itemIdsString);
             int rowsAffected = stmt.executeUpdate();
             return rowsAffected > 0;
         } catch (SQLException e) {
             System.out.println("Error adding order: " + e.getMessage());
             return false;
         }
+	}
+
+	public static boolean editMenuItem(MenuItem newItem) {
+		String query = "UPDATE menu_items SET name = ?, price = ?, category = ?, imagePath = ? WHERE id = ?";
+
+	    try (PreparedStatement stmt = connection.prepareStatement(query)) {
+	        stmt.setString(1, newItem.getItemName());
+	        stmt.setDouble(2, newItem.getPrice());
+	        stmt.setString(3, newItem.getCategory());
+	        stmt.setString(4, newItem.getImagePath());
+	        stmt.setInt(5, newItem.getItemID());
+
+	        stmt.executeUpdate();
+	        return true;
+
+	    } catch (SQLException e) {
+	        System.out.println("Error editing menu item: " + e.getMessage());
+	        return false;
+	    }
 	}
 }

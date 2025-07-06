@@ -17,7 +17,7 @@ public class Main extends Application {
 		sceneManager.addScene("operator", new OperatorScene(sceneManager));
 		sceneManager.addScene("customer", new CustomerScene(sceneManager));
 		
-		sceneManager.switchScene("login");
+		sceneManager.switchScene("manager");
 		
 		primaryStage.setTitle("Login to ASU Cafeteria");
 		primaryStage.show();

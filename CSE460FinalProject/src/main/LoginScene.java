@@ -99,4 +99,9 @@ public class LoginScene extends GenericScene {
 		
 		return user.getRole();
 	}
+
+
+	@Override
+	protected void refreshView() {
+	}
 }

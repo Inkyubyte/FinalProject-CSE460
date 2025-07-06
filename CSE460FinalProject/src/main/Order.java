@@ -1,15 +1,20 @@
 package main;
 
+import java.util.List;
+
 public class Order {
 	private int orderID;
-	private MenuItem[] orderItems;
+	private int customerID;
+	private List<MenuItem> orderItems;
 	private String name;
+	private String status;
 	
-	public Order(int orderID, MenuItem[] orderItems, String name) {
-		super();
+	public Order(int orderID, int customerID, List<MenuItem> orderItems, String name, String status) {
 		this.orderID = orderID;
+		this.customerID = customerID;
 		this.orderItems = orderItems;
 		this.name = name;
+		this.status = status;
 	}
 	
 	public String getName() {
@@ -21,10 +26,12 @@ public class Order {
 	public int getOrderID() {
 		return orderID;
 	}
-	public MenuItem[] getOrderItems() {
+	public List<MenuItem> getOrderItems() {
 		return orderItems;
 	}
-	
+	public String getStatus() {
+		return status;
+	}
 	
 	
 }
