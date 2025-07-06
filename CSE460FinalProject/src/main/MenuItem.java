@@ -37,4 +37,8 @@ public class MenuItem {
 		return category;
 	}
 	
+	public int getItemID() {
+		return itemID;
+	}
+	
 }
